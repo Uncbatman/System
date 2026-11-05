@@ -1,19 +1,44 @@
 # System: 90 Day Quest
 
-This update preserves the full `index.html` PWA supplied in the user's ZIP. The duplicate `system-quest.html` and nested output HTML were older variants with fewer features and are not used as the runtime entry.
+A lightweight, installable productivity PWA that turns reading, learning, strength training, and business outreach into a 90-day daily-quest progression. It tracks XP, hunter levels, ranks, streaks, gate-boss days, and a blue shadow army.
 
-## Run
+## What it includes
 
-From the project root, run `python3 -m http.server 3000 --bind 0.0.0.0 --directory public`. The `public/` directory is the complete static deployment output. No package installation or build step is required.
+- A 90-day schedule with daily reading, learning, outreach, scheduled strength training, rest days, and a gate boss every 15 days.
+- XP, character levels, ranks, streaks, optional bonus workouts, and a shadow-army roster.
+- A Library with PDF import and in-app reading, plus an optional book link.
+- Local progress storage and optional Google-account sync through the supplied Firebase configuration.
+- An installable PWA manifest, service worker, supplied icons, and offline-cached app/PDF-reader assets.
 
-## Structure
+The current quest plan starts on **October 24, 2026**. The business-lead quest is shown as **“Business leads reach out.”** After the day's required tasks are complete, the level-up screen reveals a blue shadow and says **“A new shadow has arisen.”** Shadow bodies remain blue; their edges become redder and their silhouettes larger at higher shadow levels.
 
-`public/index.html` contains the existing quest application, task data, XP/rank formulas, Library/PDF reader, account synchronization, and all event handling. `public/shadow-art.js` contains only the angular blue-wraith rendering and its color/size mapping. `public/shadows.css` styles the shadow roster and completion reveal. The supplied manifest, icons, PDF.js files, and service worker remain in `public/`. `tests/app.test.mjs` checks the changed presentation and unchanged core logic without contacting Firebase or changing real progress.
+## Run locally
 
-## Shadow presentation
+Python 3 is sufficient; no package installation or build step is needed. From this repository's root, run:
 
-A cleared non-rest day represents one shadow, following the app's original counting rule. Shadow level is a cosmetic derivation using the app's existing `lv()` curve over recorded task XP from the day that shadow arose through today. Earlier shadows therefore grow as subsequent quest XP is recorded. This adds no rewards, no storage keys, and no changes to the hunter's XP, rank, completion conditions, streaks, or sync payload. All bodies stay blue; outline color moves progressively from blue toward crimson through level 16. Silhouette size increases monotonically with level while remaining bounded for the phone-width army view. The end-of-day reveal uses the same shadow renderer and computed level as the roster.
+```sh
+python3 -m http.server 3000 --bind 0.0.0.0 --directory public
+```
 
-## Persistence and account sync
+Open `http://localhost:3000` in a browser. Use `http://localhost` or another secure origin for service-worker and PWA install behavior; opening the HTML directly as a `file://` URL is not equivalent.
 
-The original `sys90` localStorage key, IndexedDB PDF store, supplied Firebase project configuration, and sync behavior remain unchanged. Browser-local progress belongs to its origin: existing progress on a different hostname does not automatically move to this Preview or a newly published hostname. Google account sign-in on a new hostname remains subject to the existing Firebase project's authorized-domain settings; this update does not change those external settings.
+## Verify changes
+
+Run the focused checks with Node.js:
+
+```sh
+node --test tests/app.test.mjs
+```
+
+The checks cover the shadow level/color/size progression, exact task and reveal copy, required-task completion gates, service-worker assets, and byte-for-byte preservation of the original quest schedule, scoring, completion, and sync logic.
+
+## Data and sign-in
+
+Quest progress uses the browser's `localStorage` key `sys90`; the PDF Library uses IndexedDB. Browser-local progress is tied to its origin, so data on a different hostname does not automatically appear in a new Preview or deployment. Google sign-in can sync through the existing Firebase project. When self-hosting on a new domain, that hostname may need to be added to Firebase's authorized-domain settings; this update does not change the supplied Firebase project or its account configuration.
+
+## Project layout
+
+- `public/index.html` — original quest app and its existing rules, Library/PDF reader, persistence, and sync.
+- `public/shadow-art.js` and `public/shadows.css` — cosmetic blue-wraith silhouettes, army layout, and daily reveal.
+- `public/manifest.json`, `public/sw.js`, icons, and PDF.js files — PWA install/offline and PDF-reader assets.
+- `tests/app.test.mjs` and `tests/original-rules.json` — focused behavior checks and frozen source rules for regression comparison.
