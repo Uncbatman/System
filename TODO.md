@@ -1,0 +1,8 @@
+# TODO
+
+- [x] **Shadow silhouette and level progression.** Redesign every shadow as an original angular, ragged, armored dark-fantasy wraith silhouette rather than a clean circular form, without copying specific characters. Keep all shadows blue while making each shadow’s outline progressively redder as its level increases. Scale silhouettes so higher-level shadows appear larger than lower-level shadows.
+- [x] **Daily completion reveal.** After today’s required tasks are complete, visibly reveal a new shadow on the level-up screen and display the exact message: “A new shadow has arisen.”
+- [x] **Business-lead task wording.** Change the recurring business-lead task text to the exact wording: “Business leads reach out.”
+- [x] **Preserve existing app behavior and constraints.** Preserve the existing 90-day quest schedule, daily completion rules, XP, levels, ranks, streaks, boss tasks, local progress, account sync, Library/PDF functionality, and all current constraints unchanged.
+
+Evidence: `node --test tests/app.test.mjs` passed all 7 focused checks. The original schedule, completion, scoring/level, task-completion handler, and persistence/sync code match frozen supplied-source slices byte-for-byte. The Preview origin's app, route manifest, shadow JS/CSS, manifest, service worker, and both PDF.js files return HTTP 200. An independent read-only review found no confirmed blockers. External Google/Firebase sign-in was not exercised and may require the new origin to be authorized in the existing Firebase project; the supplied account configuration remains unchanged.

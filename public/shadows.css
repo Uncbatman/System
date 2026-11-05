@@ -1,0 +1,77 @@
+.army {
+  align-items: flex-end;
+  gap: 10px 7px;
+  padding: 15px 0 5px;
+}
+.army svg { width: auto; height: auto; }
+.shadow-figure { display: block; overflow: visible; flex: none; }
+.shadow-figure.risen { filter: drop-shadow(0 0 3px var(--shadow-edge)); }
+.army-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 3px 1px;
+  border: 0;
+  background: none;
+  color: var(--bl);
+  font: 700 11px Rajdhani, sans-serif;
+  cursor: pointer;
+}
+.army-unit:disabled { cursor: default; }
+.army-unit.unrisen { opacity: .28; }
+.army-unit.unrisen svg { width: 19px; height: 29px; }
+.army-unit:hover:not(:disabled) { filter: brightness(1.3); }
+.army-note { margin-top: 12px; font-size: 13px; }
+.arise-panel {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 27px 14px 24px;
+  border-color: #3682b5;
+  background: linear-gradient(180deg, #0c2139, #061120 65%, #0a1c30);
+}
+.arise-panel h1 { font-size: 36px; letter-spacing: 3px; margin: 4px 0; }
+.arise-kicker { color: #8bcfff; font-size: 13px; letter-spacing: 2px; }
+.arise-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 200px;
+  margin: 12px 0 2px;
+  isolation: isolate;
+}
+.arise-stage::before {
+  content: '';
+  position: absolute;
+  inset: 24px 14% 0;
+  z-index: -1;
+  background: linear-gradient(0deg, #298aca65, #1b71ab13 72%, transparent);
+  clip-path: polygon(0 100%, 12% 65%, 9% 74%, 24% 26%, 29% 62%, 43% 0, 48% 54%, 64% 13%, 64% 58%, 80% 35%, 84% 76%, 91% 59%, 100% 100%);
+  animation: shadow-mist 1.5s ease-out both;
+}
+.arise-stage .shadow-figure {
+  width: auto;
+  height: 185px;
+  max-width: 100%;
+  animation: shadow-arise 1.15s cubic-bezier(.2, .7, .2, 1) both;
+  filter: drop-shadow(0 0 9px var(--shadow-edge)) drop-shadow(0 0 23px #2a92cb55);
+}
+.arise-message { color: #b3e7ff; font-size: 22px; margin: 9px 0 3px; }
+.arise-subtitle { color: var(--dm); font-size: 14px; }
+.arise-stats { justify-content: center; gap: 34px; margin-top: 21px; }
+.arise-panel .rk { color: var(--bl); text-shadow: 0 0 16px #4fc3ff99; }
+.arise-army-button { margin-top: 18px; }
+@keyframes shadow-arise {
+  from { opacity: 0; transform: translateY(30px) scale(.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes shadow-mist {
+  from { opacity: 0; transform: scaleY(.35); transform-origin: bottom; }
+  to { opacity: 1; transform: scaleY(1); transform-origin: bottom; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arise-stage .shadow-figure, .arise-stage::before { animation: none; }
+}
