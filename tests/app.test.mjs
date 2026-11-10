@@ -7,13 +7,14 @@ const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), '
 const art = fs.readFileSync(new URL('../public/shadow-art.js', import.meta.url), 'utf8');
 const app = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const rules = JSON.parse(fs.readFileSync(new URL('./original-rules.json', import.meta.url), 'utf8'));
+const persuasion = JSON.parse(fs.readFileSync(new URL('../public/persuasion-quests.json', import.meta.url), 'utf8'));
 
 function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
   const elements = new Map();
   const events = {};
   const storage = new Map(saved ? [['sys90', JSON.stringify(saved)]] : []);
   const createElement = () => ({ style: {}, dataset: {}, append() {}, remove() {}, textContent: '', innerHTML: '' });
-  for (const id of ['app', 'pf', 'f1', 'f2', 'f3']) elements.set(id, { ...createElement(), value: '' });
+  for (const id of ['app', 'pf', 'f1', 'f2', 'f3', 'f4']) elements.set(id, { ...createElement(), value: '' });
   class FixedDate extends Date {
     constructor(...args) { super(...(args.length ? args : [date])); }
     static now() { return new Date(date).getTime(); }
@@ -31,6 +32,7 @@ function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
     },
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     navigator: {},
+    fetch: async () => ({ ok: true, json: async () => persuasion }),
     setTimeout: () => 1,
     clearTimeout() {},
     window: {},
@@ -67,6 +69,33 @@ test('business leads task uses exact requested wording in the task and form', ()
   assert.equal(app.evaluate("txt(today,'o')"), 'Business leads reach out.');
   assert.match(app.evaluate("qb('o')"), /Business leads reach out\./);
   assert.match(app.evaluate("form('o')"), /Business leads reach out\./);
+});
+
+test('persuasion drills and cards load by day and require five logged owner messages', async () => {
+  const app = createApp('2026-11-10T10:00:00Z');
+  await app.evaluate('PQ_READY');
+  assert.equal(app.evaluate('today'), 18);
+  assert.equal(persuasion.days.length, 14);
+  assert.equal(persuasion.cards.length, 12);
+  assert.match(app.evaluate("txt(today,'o')"), /Write the 5 feelings/);
+  assert.match(app.evaluate("txt(today,'o')"), /Message 5 owners/);
+  const learn = app.evaluate("form('l')");
+  assert.match(learn, /You sell feelings, not things/);
+  assert.match(learn, /Ask one owner which feeling matters most/);
+  assert.equal(Boolean(app.evaluate('pDay(22)')), false);
+  assert.equal(Boolean(app.evaluate('pDay(29)')), false);
+  assert.equal(app.evaluate('pCard(32)'), null);
+
+  app.elements.get('f1').value = '0';
+  app.elements.get('f2').value = '0';
+  app.elements.get('f3').value = '0';
+  app.elements.get('f4').value = '4';
+  app.evaluate("complete('o')");
+  assert.equal(app.evaluate("done(today,'o')"), false);
+  app.elements.get('f4').value = '5';
+  app.evaluate("complete('o')");
+  assert.equal(app.evaluate("done(today,'o')"), true);
+  assert.equal(JSON.parse(app.storage.get('sys90')).v[18].o.m, 5);
 });
 
 test('shadow bodies stay blue, silhouettes have no circles, and red intensity and size progress monotonically', () => {
@@ -148,6 +177,7 @@ test('PWA cache includes both new assets and app script remains syntactically va
   const worker = fs.readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8');
   assert.match(worker, /shadow-art\.js/);
   assert.match(worker, /shadows\.css/);
+  assert.match(worker, /persuasion-quests\.json/);
   new vm.Script(app);
   new vm.Script(art);
   assert.deepEqual(JSON.parse(fs.readFileSync(new URL('../public/manus-routes.json', import.meta.url), 'utf8')).routes, [{ path: '/', title: 'System: 90 Day Quest' }]);

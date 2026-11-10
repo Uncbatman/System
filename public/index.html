@@ -58,10 +58,11 @@ const done=(d,k)=>!!(S.d[d]&&S.d[d][k]),cnt=d=>keys(d).filter(k=>done(d,k)).leng
 const pT=d=>d<=14?5:d<=28?10:d<=42?15:20,mT=d=>Math.min(15+Math.floor((d-1)/10)*5,45);
 const wi=d=>{let c=0;for(let i=1;i<d;i++)if(wd(i))c++;return c%2?'B':'A'};
 const BOSS=['Complete a 20 minute training session with no breaks','Finish a full chapter and write 3 lessons','Book a call with a new lead','Beat your best reps in every move','Teach someone what you learned','Beat your own record in every area'];
+let PQ=null;const pDay=d=>PQ&&PQ.days?PQ.days.find(x=>x.day==d):null,pCard=d=>{const p=pDay(d);return p&&p.card&&PQ&&PQ.cards?PQ.cards.find(x=>x.id==p.card):null};
 function txt(d,k){const rd=Math.min(3+Math.floor((d-1)/21),5);
- if(k=='r')return'Read '+pT(d)+' pages';if(k=='l')return'Learn '+TP[(d-1)%3]+' for '+mT(d)+' minutes';
+ if(k=='r')return'Read '+pT(d)+' pages';if(k=='l'){const c=pCard(d);return c?'Read '+esc(c.title)+' for '+mT(d)+' minutes':'Learn '+TP[(d-1)%3]+' for '+mT(d)+' minutes'}
  if(k=='w')return wi(d)=='A'?'Workout A, '+rd+' rounds: push-ups, pull-ups, squats, hollow hold':'Workout B, '+rd+' rounds: archer push-ups, hanging rows, split squats, leg raises';
- if(k=='o')return'Business leads reach out.';if(k=='a')return'Any strength session you choose. Log your total reps.';return'GATE BOSS: '+BOSS[d/15-1]}
+ if(k=='o'){const p=pDay(d);return p?esc(p.influence)+' [BASELINE] Message 5 owners.':'Business leads reach out.'}if(k=='a')return'Any strength session you choose. Log your total reps.';return'GATE BOSS: '+BOSS[d/15-1]}
 const xp=(d,k)=>{if(!done(d,k))return 0;const v=(S.v[d]||{})[k];let x;
  if(k=='r')x=5+(v?v.p||0:5);else if(k=='l')x=5+Math.floor((v?v.m||0:15)/3);else if(k=='w')x=10+Math.floor((v?v.n||0:0)/4);
  else if(k=='o')x=v?5+3*(v.f||0)+5*(v.c||0)+Math.floor((v.$||0)/500):10;else if(k=='a')x=15+Math.floor((v?v.n||0:0)/4);else x=30;
@@ -80,7 +81,7 @@ const shields=()=>Math.floor(real()/7)-Object.keys(S.s).filter(k=>S.s[k]).length
 const bn=(m,ok)=>`<div class="pn bn${ok?' ok':''}">${m}</div>`,gh='background:none;color:var(--dm);border:1px solid var(--ln)';
 const penNeed=d=>d>1&&d<=today&&!full(d-1)&&!rest(d-1);
 const sm=(d,k)=>{const v=(S.v[d]||{})[k],nt=(S.n[d]||{})[k];if(!v)return'';
- return(k=='r'?v.p+' pages':k=='l'?v.m+' minutes':k=='o'?v.f+' leads, '+v.c+' calls, KES '+v.$:v.n?v.n+' reps':'')+(nt?'. '+esc(nt):'')};
+ return(k=='r'?v.p+' pages':k=='l'?v.m+' minutes':k=='o'?v.f+' leads, '+v.c+' calls'+(v.m?', '+v.m+' owner messages':'')+', KES '+v.$:v.n?v.n+' reps':'')+(nt?'. '+esc(nt):'')};
 // Presentation only: reuse recorded task XP and the existing level curve.
 function shadowLevel(day){let earned=0;
  for(let d=day;d<=today;d++)for(const k of'rlwoab')earned+=xp(d,k);
@@ -95,9 +96,9 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 const hd=d=>`<div class="pn"><div class="row sp"><h1>[DAILY QUEST]</h1><span class="sub">Day ${d}/90</span></div><div class="sub">${dd(d).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}${d==today?', '+cnt(d)+' of '+keys(d).length+' cleared':', view only'}</div></div>`;
 function form(k){const d=today,i=(id,ph,val,ty)=>`<input id="${id}" ${ty?`type="text" maxlength="100"`:`type="number" inputmode="numeric" min="0"`} placeholder="${ph}" value="${val}">`;let f='';
  if(k=='r')f=(rdToday()?`<div class="sub">${rdToday()} pages counted from your Library today</div>`:'')+i('f1','Pages read',rdToday()||pT(d))+i('f2','Your one-line takeaway','',1)+(S.link?`<a class="lk" href="${esc(S.link)}" target="_blank" rel="noopener">Open your book</a>`:'');
- if(k=='l')f=i('f1','Minutes spent',mT(d))+i('f2','Your one-line takeaway','',1);
+ if(k=='l'){const c=pCard(d);f=(c?`<div class="sub"><strong>${esc(c.title)}</strong><br>${esc(c.idea)}<br><b>Try today:</b> ${esc(c.tryToday)}</div>`:'')+i('f1','Minutes spent',mT(d))+i('f2',c?'One-line takeaway after trying it':'Your one-line takeaway','',1)}
  if(k=='w'||k=='a')f=i('f1','Total reps (or seconds of holds)','');
- if(k=='o')f=i('f1','New leads found','')+i('f2','Calls made','')+i('f3','Money made (KES)','');
+ if(k=='o'){const p=pDay(d);f=i('f1','New leads found','')+i('f2','Calls made','')+i('f3','Money made (KES)','')+(p?i('f4','Owner messages sent (5 required)',''):'')}
  return`<div class="pn"><h2>${ST[k]}</h2><div class="sub" style="margin-bottom:8px">${txt(d,k)}</div><div style="display:grid;gap:8px">${f}</div><div class="row" style="margin-top:10px"><button class="b" data-c="${k}">Complete</button><button class="b" style="${gh}" data-x="1">Cancel</button></div></div>`}
 const qb=k=>`<button class="t" data-o="${k}"><span class="bx"></span><span class="tt"><span class="tg">${ST[k]}</span><br>${txt(today,k)}</span></button>`;
 function lvScreen(s,t,L){const xt=keys(today).concat(['a']).reduce((a,k)=>a+xp(today,k),0),tt=TITLES.filter(x=>fd()>=x[0]).pop();
@@ -105,10 +106,10 @@ function lvScreen(s,t,L){const xt=keys(today).concat(['a']).reduce((a,k)=>a+xp(t
  let o=`<section class="pn arise-panel" aria-labelledby="arise-heading"><div class="arise-kicker">[QUEST COMPLETE]</div><h1>LEVEL UP</h1><div class="sub">Day ${today} cleared. +${xt} XP today.</div><div class="arise-stage">${shadow(true,risenLevel)}</div><h2 class="arise-message" id="arise-heading" role="status">A new shadow has arisen.</h2><div class="arise-subtitle">Shadow of Day ${today} · Lv ${risenLevel} · ${fd()} in your army</div><div class="row arise-stats"><div><div class="sub">Hunter level</div><div class="big">${L}</div></div><div><div class="sub">Rank</div><div class="rk">${rk(L)}</div></div></div><div class="sub" style="margin-top:12px">${tt?tt[1]+', ':''}streak ${streak()} days</div><button class="b arise-army-button" data-v="d">View shadow army</button></section><div class="pn"><h2>Stats</h2>`;
  for(const k of'rlwo')o+=`<div class="row sp"><span>${ST[k]}</span><span>Lv ${sl(s[k])}</span></div><div class="bar" style="margin:4px 0 10px"><i style="width:${(s[k]%25)*4}%"></i></div>`;
  return o+`</div><div class="sub" style="text-align:center;opacity:.8">${done(today,'a')?'':`<button style="background:none;border:0;color:var(--bl);font:inherit;padding:10px" data-o="a">Bonus workout (+XP)</button>`}<br>Reopen: ${keys(today).map(k=>`<button style="background:none;border:0;color:var(--bl);font:inherit;padding:10px" data-u="${k}">${ST[k]}</button>`).join('')}</div>`}
-function rv(b){if(b<0)return'';const a=b*7+1,z=Math.min(b*7+7,today);if(a>today)return'';let f=0,K=0,p=0,m=0,w=0,ld=0,c=0,$=0;
- for(let d=a;d<=z;d++){if(!rest(d)){K++;if(full(d))f++}const v=S.v[d]||{};if(v.r)p+=v.r.p||0;if(v.l)m+=v.l.m||0;if(done(d,'w'))w++;if(done(d,'a'))w++;if(v.o){ld+=v.o.f||0;c+=v.o.c||0;$+=v.o.$||0}}
+function rv(b){if(b<0)return'';const a=b*7+1,z=Math.min(b*7+7,today);if(a>today)return'';let f=0,K=0,p=0,m=0,w=0,ld=0,c=0,msg=0,$=0;
+ for(let d=a;d<=z;d++){if(!rest(d)){K++;if(full(d))f++}const v=S.v[d]||{};if(v.r)p+=v.r.p||0;if(v.l)m+=v.l.m||0;if(done(d,'w'))w++;if(done(d,'a'))w++;if(v.o){ld+=v.o.f||0;c+=v.o.c||0;msg+=v.o.m||0;$+=v.o.$||0}}
  const R=(x,y)=>`<div class="row sp"><span>${x}</span><span>${y}</span></div>`;
- return`<div class="pn"><h2>${b==Math.floor((today-1)/7)?'This week':'Last week'} (days ${a} to ${z})</h2>${R('Days cleared',f+' of '+K)}${R('Pages read',p)}${R('Minutes learned',m)}${R('Workouts',w+' (3 earns a bonus)')}${R('Leads, calls',ld+', '+c)}${R('Money made','KES '+$)}</div>`}
+ return`<div class="pn"><h2>${b==Math.floor((today-1)/7)?'This week':'Last week'} (days ${a} to ${z})</h2>${R('Days cleared',f+' of '+K)}${R('Pages read',p)}${R('Minutes learned',m)}${R('Workouts',w+' (3 earns a bonus)')}${R('Leads, calls',ld+', '+c)}${R('Owner messages',msg)}${R('Money made','KES '+$)}</div>`}
 function render(){
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==V));
  const A=document.getElementById('app'),{s,t}=stats(),L=lv(t),h=n.getHours();
@@ -128,11 +129,11 @@ function render(){
   keys(d).forEach(k=>{if(!done(d,k))o+=open==k?form(k):qb(k)});
   if(open=='a')o+=form('a');else if(!done(d,'a')&&(!wd(d)||done(d,'w')))o+=`<button class="t" data-o="a" style="opacity:.75"><span class="bx"></span><span class="tt"><span class="tg">BONUS</span><br>Bonus workout (+XP, optional)</span></button>`;
   A.innerHTML=o}
- if(V=='s'){const dn=fd(),tt=TITLES.filter(x=>dn>=x[0]).pop();let q=0,l=0,w=0,ld=0,c=0,$=0,pg=0;
-  for(let d=1;d<=90;d++){const v=S.v[d]||{};if(v.r)pg+=v.r.p||0;if(v.o){ld+=v.o.f||0;c+=v.o.c||0;$+=v.o.$||0}if(done(d,'w'))w++;if(done(d,'a'))w++}
+ if(V=='s'){const dn=fd(),tt=TITLES.filter(x=>dn>=x[0]).pop();let q=0,l=0,w=0,ld=0,c=0,msg=0,$=0,pg=0;
+  for(let d=1;d<=90;d++){const v=S.v[d]||{};if(v.r)pg+=v.r.p||0;if(v.o){ld+=v.o.f||0;c+=v.o.c||0;msg+=v.o.m||0;$+=v.o.$||0}if(done(d,'w'))w++;if(done(d,'a'))w++}
   let o=`<div class="pn"><h1>[STATUS]</h1><div class="row sp" style="margin-top:10px"><div><div class="sub">Level</div><div class="big">${L}</div></div><div><div class="sub">Rank</div><div class="rk">${rk(L)}</div></div><div style="text-align:right"><div class="sub">Title</div><div>${tt?tt[1]:'Unawakened'}</div><div class="sub">Streak ${streak()} days</div></div></div><div class="bar" style="margin-top:10px"><i style="width:${pct(t)}%"></i></div><div class="sub">${t} XP</div></div><div class="pn"><h2>Stats</h2>`;
   for(const k of'rlwo')o+=`<div class="row sp"><span>${ST[k]}</span><span>Lv ${sl(s[k])}</span></div><div class="bar" style="margin:4px 0 10px"><i style="width:${(s[k]%25)*4}%"></i></div>`;
-  o+=`</div><div class="pn"><h2>Totals</h2><div class="row sp"><span>Pages read</span><span>${pg}</span></div><div class="row sp"><span>Workouts</span><span>${w}</span></div><div class="row sp"><span>Leads found</span><span>${ld}</span></div><div class="row sp"><span>Calls made</span><span>${c}</span></div><div class="row sp"><span>Money made</span><span>KES ${$}</span></div></div>`;
+  o+=`</div><div class="pn"><h2>Totals</h2><div class="row sp"><span>Pages read</span><span>${pg}</span></div><div class="row sp"><span>Workouts</span><span>${w}</span></div><div class="row sp"><span>Leads found</span><span>${ld}</span></div><div class="row sp"><span>Calls made</span><span>${c}</span></div><div class="row sp"><span>Owner messages</span><span>${msg}</span></div><div class="row sp"><span>Money made</span><span>KES ${$}</span></div></div>`;
   const b=Math.floor((today-1)/7);o+=rv(b)+rv(b-1);
   o+=`<div class="pn"><h2>Account</h2>${U?`<div class="sub">${esc(U.email)}</div><div class="sub" style="margin:4px 0 8px">${SM||'Signed in'}</div><div class="row"><button class="b" id="sv">Save progress</button><button class="b" id="so" style="${gh}">Sign out</button></div>`:`<div class="sub" style="margin-bottom:8px">Sign in to save your progress to your Google account.</div><button class="b" id="si">Sign in with Google</button><div class="sub" style="margin-top:6px">${SM}</div>`}</div><div class="pn"><h2>Book link</h2><div class="row"><input id="lk" type="url" placeholder="https://" value="${esc(S.link||'')}"><button class="b" id="sl">Save</button></div></div>`;
   A.innerHTML=o}
@@ -171,6 +172,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  if(b.id=='sv'){SM='Saving';render();sync();return}
  if(b.id=='sl'){S.link=document.getElementById('lk').value.trim();save();toast('Book link saved');render()}});
 
+const completeBase=complete;complete=function(k){if(k!='o'||!pDay(today))return completeBase(k);const d=today,g=i=>+(document.getElementById(i)||{}).value||0,v={f:g('f1'),c:g('f2'),$:g('f3'),m:g('f4')};if(v.m<5){toast('Log at least 5 owner messages to clear this drill');return}const l0=lv(stats().t);S.d[d]=S.d[d]||{};S.d[d][k]=1;(S.v[d]=S.v[d]||{})[k]=v;let crit=0;if(Math.random()<.2){S.c[d+k]=1;crit=1}open=null;save();render();beep();const x=xp(d,k),l1=lv(stats().t);toast(l1>l0?'[LEVEL UP] You reached level '+l1+'.':crit?'[CRITICAL HIT] +'+x+' XP, double.':full(d)?'[QUEST COMPLETE] Arise.':'+'+x+' XP '+ST[k],k)};
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('sysLib',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const idbOp=async(m,k,v)=>{const db=await idb();return new Promise((res,rej)=>{const s=db.transaction('f',m=='get'?'readonly':'readwrite').objectStore('f'),q=m=='get'?s.get(k):m=='put'?s.put(v,k):s.delete(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})};
 let have={},attachId=null,PDF=null,cur=1,zoom=1,bid=null,tmr=null,rt=null;
@@ -207,13 +209,14 @@ const editForm=(d,k)=>{const v=(S.v[d]||{})[k]||{},nt=(S.n[d]||{})[k]||'',i=(id,
  if(k=='r')f=i('f1','Pages read',v.p??'')+i('f2','Your one-line takeaway',nt,1);
  if(k=='l')f=i('f1','Minutes spent',v.m??'')+i('f2','Your one-line takeaway',nt,1);
  if(k=='w'||k=='a')f=i('f1','Total reps',v.n??'');
- if(k=='o')f=i('f1','New leads found',v.f??'')+i('f2','Calls made',v.c??'')+i('f3','Money made (KES)',v.$??'');
+ if(k=='o')f=i('f1','New leads found',v.f??'')+i('f2','Calls made',v.c??'')+i('f3','Money made (KES)',v.$??'')+(pDay(d)?i('f4','Owner messages sent',v.m??''):'');
  return`<div class="pn"><h2>Correct ${ST[k]}, day ${d}</h2><div class="sub" style="margin-bottom:8px">Fix a wrong number. This cannot complete a missed quest.</div><div style="display:grid;gap:8px">${f}</div><div class="row" style="margin-top:10px"><button class="b" data-sc="${k}">Save changes</button><button class="b" style="${gh}" data-x="1">Cancel</button></div></div>`};
 function saveEdit(k){const d=ed.d,g=i=>+(document.getElementById(i)||{}).value||0,tx=i=>((document.getElementById(i)||{}).value||'').trim(),v={};
- if(k=='r')v.p=g('f1');else if(k=='l')v.m=g('f1');else if(k=='w'||k=='a')v.n=g('f1');else if(k=='o'){v.f=g('f1');v.c=g('f2');v.$=g('f3')}
+ if(k=='r')v.p=g('f1');else if(k=='l')v.m=g('f1');else if(k=='w'||k=='a')v.n=g('f1');else if(k=='o'){v.f=g('f1');v.c=g('f2');v.$=g('f3');if(pDay(d))v.m=g('f4')}
  (S.v[d]=S.v[d]||{})[k]=v;if(k=='r'||k=='l'){S.n[d]=S.n[d]||{};S.n[d][k]=tx('f2')}
  ed=null;save();render();toast('Numbers corrected')}
 document.addEventListener('change',e=>{if(e.target.id=='pf'){addFile(e.target.files[0]);e.target.value=''}});
+const PQ_READY=fetch('persuasion-quests.json').then(r=>{if(!r.ok)throw Error('quests unavailable');return r.json()}).then(x=>{PQ=x;render()}).catch(()=>{});
 refreshHave().then(()=>{if(V=='b')render()});
 function fit(){const w=innerWidth;document.body.style.zoom=(screen.width<700&&w>screen.width*1.2)?Math.min(3,w/480):1}
 fit();addEventListener('resize',fit);

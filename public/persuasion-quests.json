@@ -1,0 +1,36 @@
+{
+  "name": "Persuasion Engineering: 14 daily drills",
+  "startsOnDay": 18,
+  "restDays": [22, 29],
+  "note": "Influence = the day's drill plus the usual 5 owner messages. Learn = read the card, write a one-line takeaway, do the try-today action.",
+  "days": [
+    {"day": 18, "n": 1,  "card": 1,  "influence": "Write the 5 feelings an owner might want from a website. Message 5 owners, aiming at the feeling you think matters most."},
+    {"day": 19, "n": 2,  "card": 2,  "influence": "Write 10 openers that start with the owner, not you. Send 5 different ones to 5 owners. Note which get replies."},
+    {"day": 20, "n": 3,  "card": 3,  "influence": "Before each of 5 messages, copy one exact phrase from the owner's own posts or bio and use it back."},
+    {"day": 21, "n": 4,  "card": 4,  "influence": "Play-back drill: 5 minutes with a friend, say their wants back in their exact words until they say yes. Then message 5 owners."},
+    {"day": 23, "n": 5,  "card": 5,  "influence": "Write 8 questions for owners. Put one in each of 5 messages (for example: how do customers place orders right now?)."},
+    {"day": 24, "n": 6,  "card": 6,  "influence": "Chat with 3 warm prospects. Goal: get them talking and play it back. No pitching. Then message 5 new owners."},
+    {"day": 25, "n": 7,  "card": 7,  "influence": "Review: count replies per opener, keep the best 2. Message 5 owners using only those."},
+    {"day": 26, "n": 8,  "card": 8,  "influence": "Ask 3 people about a purchase they love and one they regret. Write the pattern. Message 5 owners."},
+    {"day": 27, "n": 9,  "card": 9,  "influence": "Write your top 8 worries with an early-answer line for each. Use one early line in each of 5 messages."},
+    {"day": 28, "n": 10, "card": 10, "influence": "Write 3 replies to 'let me think about it' that ask what is behind it and set a date. Role-play once. Message 5 owners."},
+    {"day": 30, "n": 11, "card": 11, "influence": "GATE BOSS: have 5 real conversations and end each with a small next-step ask. After a yes, say only logistics."},
+    {"day": 31, "n": 12, "card": 12, "influence": "Voice day: record 3 slow voice notes from the chest, send them to prospects. Message 5 owners."},
+    {"day": 32, "n": 13, "card": null, "influence": "Do the 60-second recall before each of 3 calls. Make 3 calls. Note how each felt."},
+    {"day": 33, "n": 14, "card": null, "influence": "Ask every friendly contact who else should see this. Review the 14 days: keep the 3 things that worked best."}
+  ],
+  "cards": [
+    {"id": 1,  "title": "You sell feelings, not things", "idea": "Nobody wants a website. They want the feeling it gives them: pride, fewer repeated questions, looking serious next to bigger shops.", "tryToday": "Ask one owner which feeling matters most. Do not guess."},
+    {"id": 2,  "title": "Get their full attention first", "idea": "If they are not paying attention, nothing else counts. Open with something about them, short and a little unexpected.", "tryToday": "Rewrite your first line so it is about their shop, not you."},
+    {"id": 3,  "title": "Listen to the exact words", "idea": "People tell you what they want in their own words. Looks good means show it. Sounds right means explain it. Feels right means let them try it.", "tryToday": "Underline their key words in one chat and use those same words back."},
+    {"id": 4,  "title": "Say it back in their words", "idea": "After 4 to 6 things, list them back in their words and order until you hear: yes, exactly.", "tryToday": "Play back what you heard once today. Did they say yes?"},
+    {"id": 5,  "title": "Ask for exactly what you need", "idea": "Ask direct questions. Echo their last word as a question. Give something back for every few questions.", "tryToday": "Echo one word today and see how much more they tell you."},
+    {"id": 6,  "title": "Make them feel understood", "idea": "Copy a little of how they talk (length, language, mood), then lead. Show understanding by what you do, not by saying I understand.", "tryToday": "Before each reply, check: is mine about as long and as warm as theirs?"},
+    {"id": 7,  "title": "Work backwards from the end", "idea": "Steps: attention, rapport, find what they want, present in their words, answer worries early, close, make it stick.", "tryToday": "After each chat, mark which step it stopped at."},
+    {"id": 8,  "title": "Help them decide in a way they will be glad about", "idea": "Ask about a purchase they love and one they regret. Match the way they decide when they get it right. Never push what they cannot afford.", "tryToday": "Ask one person the love-versus-regret question."},
+    {"id": 9,  "title": "Answer worries before they say them", "idea": "You know the usual objections. Mention them early, calmly, with a fair reframe.", "tryToday": "Use one early-answer line in a message today."},
+    {"id": 10, "title": "Find out when they will decide", "idea": "I am going to decide can stay in the future forever. When they say let me think, ask what they are thinking about and agree a date.", "tryToday": "Ask: what would you need to see to feel sure? Then fix a date."},
+    {"id": 11, "title": "Test for the close, then stop talking", "idea": "Ask small are-you-ready questions all through. When they say yes, stop selling. Then ask who else should see this.", "tryToday": "End every chat with a small next step."},
+    {"id": 12, "title": "Start from your own state and voice", "idea": "Your mood spreads. Speak slower, lower, from the chest. Recall a strong moment before you call.", "tryToday": "Do the 60-second recall before your next call."}
+  ]
+}
