@@ -16,7 +16,7 @@
   border: 0;
   background: none;
   color: var(--bl);
-  font: 700 11px Rajdhani, sans-serif;
+  font: 700 11px system-ui, sans-serif;
   cursor: pointer;
 }
 .army-unit:disabled { cursor: default; }
