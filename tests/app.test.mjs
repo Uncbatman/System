@@ -65,6 +65,24 @@ test('existing XP and completion formulas remain byte-identical', () => {
   assert.ok(app.includes("localStorage.getItem(KEY)"));
 });
 
+test('Today view stays minimal, shows progress and saved state, and retains completed rows', () => {
+  const app = createApp();
+  app.evaluate('S.d={}; S.v={}; S.c={}; S.p={}; render()');
+  let output = app.elements.get('app').innerHTML;
+  assert.match(output, /TODAY/);
+  assert.match(output, /0 of 3 complete/);
+  assert.match(output, /SAVED ON DEVICE/);
+  assert.match(output, /role="progressbar"/);
+  assert.doesNotMatch(output, /The Daily Quest has arrived/);
+  app.elements.get('f1').value = '5';
+  app.elements.get('f2').value = 'A useful takeaway';
+  app.evaluate("complete('r')");
+  output = app.elements.get('app').innerHTML;
+  assert.match(output, /1 of 3 complete/);
+  assert.match(output, /class="t today-quest d"/);
+  assert.match(output, /5 pages/);
+});
+
 test('business leads task uses exact requested wording in the task and form', () => {
   const app = createApp();
   assert.equal(app.evaluate("txt(today,'o')"), 'Business leads reach out.');

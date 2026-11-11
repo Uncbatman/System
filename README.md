@@ -11,7 +11,7 @@ A lightweight, installable productivity PWA for tracking reading, learning, stre
 - Optional Google-account sync. The Firebase sign-in module is loaded only when the user chooses to sign in; signing in and cloud sync require connectivity.
 - A PWA shell and app assets cached for later offline use, including the persuasion data and PDF reader.
 
-The default program starts **October 24, 2026**. The recurring business task is **“Business leads reach out.”** After the day's required tasks are complete, the level-up screen reveals a blue shadow and says **“A new shadow has arisen.”**
+The default program starts **October 24, 2026**. The recurring business task is **“Business leads reach out.”** The Today view keeps completed activities visible, shows local/save status and required-task progress, and uses a compact completion card to reveal a blue shadow with the exact line **“A new shadow has arisen.”**
 
 ## Offline use
 
@@ -45,7 +45,7 @@ Run the focused checks with Node.js:
 node --test tests/app.test.mjs
 ```
 
-The 12 checks cover the supplied persuasion data and five-message gate, configurable scheduling, actual text import and rolling recovery, backup parsing, quest completion, shadow progression, exact user-facing copy, offline cache assets, and preservation of the XP formula and original completion handler.
+The 13 checks cover the minimalist Today view, device-save status, visible completed activities, supplied persuasion data and five-message gate, configurable scheduling, actual text import and rolling recovery, backup parsing, quest completion, shadow progression, exact user-facing copy, offline cache assets, and preservation of the XP formula and original completion handler. Run the suite in UTC and a western time zone when changing date/import logic.
 
 ## Sign-in and cloud-data security
 
