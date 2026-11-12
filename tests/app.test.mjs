@@ -29,6 +29,7 @@ function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
     Math: Object.assign(Object.create(Math), { random: () => 1 }),
     console,
     URL,
+    Blob,
     document: {
       getElementById: id => elements.get(id) || null,
       querySelectorAll: () => [],
@@ -345,6 +346,26 @@ test('website rank evidence saves actual transition times and real moment types 
   assert.equal(app.evaluate("SYS.currentMoment().kind"), 'sale');
   assert.ok(app.evaluate("S.system.events.some(e=>e.kind==='siteSold'&&e.siteId==='s1'&&e.active!==false)"));
   assert.ok(app.evaluate("SystemProgression.titleList(S.system,S.websites).includes('First Sale')"));
+});
+
+test('Google sync writes a local Website merge back and pauses oversized Firestore writes safely', async () => {
+  const localSite = { id: 'local-site', name: 'Local Studio', url: 'https://local.example', image: 'data:image/jpeg;base64,AA==', createdAt: '2026-11-05T08:00:00.000Z', updatedAt: '2026-11-05T08:00:00.000Z', status: 'Built' };
+  const remoteSite = { id: 'remote-site', name: 'Remote Cafe', url: 'https://remote.example', image: 'data:image/jpeg;base64,AA==', createdAt: '2026-11-05T07:00:00.000Z', updatedAt: '2026-11-05T07:00:00.000Z', status: 'Sent', sentAt: '2026-11-05T07:00:00.000Z' };
+  const local = { websites: [localSite], t: new Date('2026-11-05T09:00:00Z').getTime() };
+  const remote = { websites: [remoteSite], t: new Date('2026-11-05T10:01:00Z').getTime() };
+  const app = createApp('2026-11-05T10:00:00Z', local);
+  app.evaluate(`window.syncWrites=[];window.fb={get:async()=>({j:${JSON.stringify(JSON.stringify(remote))},t:${remote.t}}),set:async(user,value)=>window.syncWrites.push(JSON.parse(value.j))}`);
+  await app.evaluate("onUser({uid:'test-user'})");
+  assert.deepEqual(JSON.parse(app.storage.get('sys90')).websites.map(site => site.id).sort(), ['local-site', 'remote-site']);
+  assert.equal(app.evaluate('syncWrites.length'), 1, `the merged site list should be returned to Google (${app.evaluate('SM')})`);
+  assert.deepEqual(JSON.parse(JSON.stringify(app.evaluate('syncWrites[0].websites.map(site => site.id).sort()'))), ['local-site', 'remote-site']);
+  assert.ok(app.evaluate('syncWrites[0].t') > remote.t, 'the merged document must be newer than the remote copy');
+
+  const oversized = createApp('2026-11-05T10:00:00Z', { note: 'x'.repeat(870 * 1024) });
+  oversized.evaluate('window.syncWrites=[];window.fb={get:async()=>null,set:async(user,value)=>window.syncWrites.push(value)}');
+  await oversized.evaluate("onUser({uid:'test-user'})");
+  assert.equal(oversized.evaluate('syncWrites.length'), 0, 'do not attempt to exceed Firestore’s 1 MiB document cap');
+  assert.match(oversized.evaluate('SM'), /Sync paused/);
 });
 
 test('Websites summary counts reached statuses, reveals Sold only after a sale, and lists newest first', () => {

@@ -49,7 +49,7 @@ Run the focused checks with Node.js:
 node --test tests/app.test.mjs
 ```
 
-The 21 checks cover the legacy XP/completion invariants, Website tracking, additive progress/backup preservation, Status layout and opening card, real-action scoring, rank-trial promotion/timestamps/Saturday rest, Saturday reporting, shadow color roles, and PWA/offline assets. Run `TZ=America/Los_Angeles node --test tests/app.test.mjs` as well when changing date handling.
+The 22 checks cover the legacy XP/completion invariants, Website tracking, additive progress/backup preservation, Status layout and opening card, real-action scoring, rank-trial promotion/timestamps/Saturday rest, Saturday reporting, shadow color roles, and PWA/offline assets. Run `TZ=America/Los_Angeles node --test tests/app.test.mjs` as well when changing date handling.
 
 ## Sign-in and cloud-data security
 
