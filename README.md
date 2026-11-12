@@ -10,11 +10,12 @@ A lightweight, installable productivity PWA for tracking reading, learning, stre
 - Local progress tracking that works without signing in, versioned JSON export/restore, one-step local recovery, and preview-first `.txt` activity import.
 - Optional Google-account sync. The Firebase sign-in module is loaded only when the user chooses to sign in; signing in and cloud sync require connectivity.
 - A Websites tracker for built sites, outreach status, follow-up dates, and notes. Website screenshots are reduced and JPEG-compressed in the browser, then saved as part of the existing progress state and synced through the existing Google-account document when signed in. No paid storage or new Firebase service is used.
-- A PWA shell and app assets cached for later offline use, including the persuasion data and PDF reader.
+- A PWA shell and app assets cached for later offline use, including System progression modules, persuasion data and the PDF reader.
+- A Status home with four point-based attributes, rank trials, optional gates, seven-step momentum, Saturday reports and the Website Shadow Army. Legacy quest XP, streaks, levels, daily logs and campaign schedule remain additive/unchanged. New stat weights, rank windows, workout targets, effects and rewards are editable in `public/program-config.js`.
 
-The default program starts **October 24, 2026**. The recurring business task is **“Business leads reach out.”** The Today view keeps completed activities visible, shows local/save status and required-task progress, and uses a compact completion card to reveal a blue shadow with the exact line **“A new shadow has arisen.”**
+The default program starts **October 24, 2026**. The recurring business task is **“Business leads reach out.”** Status is the home view; Today retains the established quest flow and completed activities. Reopening a completed day is factual and does not replay a milestone. Level-ups, rank-ups and Website ARISE are tied to their recorded actions.
 
-The Websites tab is separate from quest scoring and level progression. It tracks URL, business name, compressed screenshot, creation date, status, Sent date, and optional note. Its records use the existing `sys90` local state and existing signed-in Google sync. Sign in through **Status → Account** for account sync; without sign-in, changes remain on the current device, consistent with the app's existing local-first behavior. Older JSON backups without the Websites field do not erase sites already on the device.
+The Websites tracker retains URL, business name, compressed screenshot, creation date, status, Sent date and optional note in the existing `sys90` state. Real Sent/Reply/Sold transitions feed the additive System stats and rank evidence; the legacy XP formula and daily quest completion scores remain unchanged. Sign in through **Status → Progress, account & settings** for sync; without sign-in, changes remain on this device as before. Older JSON backups that omit Websites or System fields do not erase those existing records.
 
 ## Offline use
 
@@ -26,7 +27,7 @@ Each local save keeps the immediately previous progress state as a one-step reco
 
 ## Configuration and maintenance
 
-`public/program-config.js` is the single editable defaults file for the program start date, duration, rest/workout weekdays, Gate Boss interval and prompts, learning topics, business task text, and daily owner-message target. The **Status → Program setup** date control changes the active start date for the current saved progress and asks for confirmation because day-numbered records will map to different calendar dates. Other configuration edits require redeploying/reloading the app. The existing XP formula and completion handler remain unchanged; the configured duration and calendar rules determine the schedule and reporting ranges.
+`public/program-config.js` keeps the existing campaign defaults and is the single editable settings file for new System stat weights, three rank-trial targets/windows, adaptive targets, Gate challenges, momentum rewards and effect durations. Its rank-trial assumptions are E→D 14 days (specified), D→C 21 and C→B 28 days (editable defaults); an on-time finish leaves the next trial as written. B-rank and higher trials remain unconfigured. The **Status → Progress, account & settings** disclosure retains the cycle-start control; changing it confirms that day-numbered entries will map to other calendar dates. The legacy XP formula and completion handler remain unchanged.
 
 The app logic, program settings, and optional online authentication are separate files. There is no build step or JavaScript framework.
 
@@ -48,7 +49,7 @@ Run the focused checks with Node.js:
 node --test tests/app.test.mjs
 ```
 
-The 17 checks cover the minimalist Today view, device-save status, visible completed activities, supplied persuasion data and five-message gate, configurable scheduling, actual text import and rolling recovery, backup parsing, quest completion, shadow progression, Websites status totals and follow-up filtering (including a daylight-saving boundary), older-backup preservation, exact user-facing copy, offline cache assets, and preservation of the XP formula and original completion handler. Run the suite in UTC and a western time zone when changing date/import logic.
+The 21 checks cover the legacy XP/completion invariants, Website tracking, additive progress/backup preservation, Status layout and opening card, real-action scoring, rank-trial promotion/timestamps/Saturday rest, Saturday reporting, shadow color roles, and PWA/offline assets. Run `TZ=America/Los_Angeles node --test tests/app.test.mjs` as well when changing date handling.
 
 ## Sign-in and cloud-data security
 
@@ -58,9 +59,10 @@ The Firebase browser configuration is client-side configuration, not a secret. C
 
 - `public/index.html` — PWA entry page and styling.
 - `public/app.js` — quest, status, Library, Websites tracker, persistence, backup/import, and rendering logic.
-- `public/program-config.js` — editable campaign defaults.
+- `public/program-config.js` — existing campaign defaults and all editable System progression targets/point values.
+- `public/system-progression.js`, `public/system-trials.js`, `public/system-dashboard.js`, `public/system-app.js`, `public/system.css` — additive progression state, trial calculations, Status/army templates, app adapter and presentation.
 - `public/firebase-auth.js` — optional Firebase/Google sign-in and Firestore sync, loaded on demand.
 - `public/persuasion-quests.json` — day-mapped drills and learning cards, used and cached offline.
 - `public/shadow-art.js` and `public/shadows.css` — shadow visuals and army layout.
 - `public/manifest.json`, `public/sw.js`, icons, and PDF.js files — install, offline, and PDF-reader assets.
-- `tests/app.test.mjs` and `tests/original-rules.json` — focused behavior checks and frozen source rules for regression comparison.
+- `tests/app.test.mjs` and `tests/original-rules.json` — focused behavior checks and a frozen rules fixture for regression comparison (not deployable security rules).
