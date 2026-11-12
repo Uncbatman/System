@@ -4,8 +4,8 @@ const parseStart=value=>{const [y,m,d]=value.split('-').map(Number);return new D
 let START;
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 S=S||{link:'',d:{1:{r:1,l:1,w:1},2:{r:1,l:1,w:1,o:1}},p:{2:1}};S.startDate=S.startDate||CFG.startDate||'2026-10-24';START=parseStart(S.startDate);
-const fix=()=>{for(const k of['c','s','n','p','d','v','lib','rd'])S[k]=S[k]||{}};fix();
-let U=null,SM='',tm,V='q',open=null,ed=null;
+const fix=()=>{for(const k of['c','s','n','p','d','v','lib','rd'])S[k]=S[k]||{};if(!Array.isArray(S.websites))S.websites=[]};fix();
+let U=null,SM='',tm,V='q',open=null,ed=null,W_SCREEN='list',W_SELECTED=null,W_FILTER=false,W_IMAGE=null,W_PREVIEW='',W_SAVING=false;
 const n=new Date(),dd=d=>new Date(START.getFullYear(),START.getMonth(),START.getDate()+d-1),dow=d=>dd(d).getDay();
 const currentDay=()=>Math.min(DAYS,Math.max(1,Math.floor((new Date(n.getFullYear(),n.getMonth(),n.getDate())-START)/864e5)+1));let today=currentDay(),sel=today;
 const rest=d=>(CFG.restWeekdays||[6]).includes(dow(d)),wd=d=>(CFG.strengthWeekdays||[1,3,5]).includes(dow(d)),boss=d=>d%(CFG.bossEveryDays||15)==0;
@@ -50,6 +50,60 @@ const save=()=>{S.t=Date.now();try{const prior=localStorage.getItem(KEY);if(prio
 async function sync(){if(!U||!window.fb)return;if(navigator.onLine===false){SM='Offline; progress remains saved on this device';render();return}try{SM='Syncing';const c=await fb.get(U);if(c&&c.j&&c.t>(S.t||0)){try{localStorage.setItem('sys90_prev',localStorage.getItem(KEY)||'');saveSafetyCopy()}catch(e){}S=JSON.parse(c.j);fix();S.startDate=S.startDate||CFG.startDate;START=parseStart(S.startDate);today=currentDay();sel=today;localStorage.setItem(KEY,JSON.stringify(S));SM='Loaded from your account; previous local copy kept'}else{if(!S.t)S.t=Date.now();await fb.set(U,{j:JSON.stringify(S),t:S.t});SM='Saved to your account'}}catch(e){SM='Sync failed: '+(e.code||e.message)}render()}
 window.onUser=async u=>{U=u;if(u)await sync();else SM='';render()};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&navigator.onLine!==false)sync()});addEventListener('online',()=>{if(U&&window.fb)sync()});
+const WEBSITE_STATES=['Built','Sent','Replied','Sold'];
+function websiteUrl(value){try{const u=new URL(String(value||'').trim()),host=u.hostname.toLowerCase(),labels=host.replace(/\.$/,'').split('.'),ipv4=/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)&&host.split('.').every(part=>+part<=255),domain=labels.length>=2&&labels.every(label=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))&&labels.at(-1).length>=2;return /^https?:$/.test(u.protocol)&&(domain||ipv4)&&!u.username&&!u.password?u:null}catch{return null}}
+const websiteCalendarDay=value=>{const d=new Date(value);return Number.isNaN(d.getTime())?NaN:Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5};
+function websiteFollowups(now=Date.now()){
+ return(S.websites||[]).filter(site=>site.status==='Sent'&&site.sentAt&&websiteCalendarDay(now)-websiteCalendarDay(site.sentAt)>=3)
+}
+function websiteSummary(){const sites=S.websites||[];return{built:sites.length,sent:sites.filter(x=>WEBSITE_STATES.indexOf(x.status)>=1).length,replied:sites.filter(x=>WEBSITE_STATES.indexOf(x.status)>=2).length,sold:sites.filter(x=>x.status==='Sold').length}}
+function websiteDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}
+function websitesView(){
+ const sites=(S.websites||[]).slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+ const waiting=websiteFollowups().length,stats=websiteSummary();
+ if(W_SCREEN==='add'){
+  const ready=!!websiteUrl(document.getElementById('siteUrl')?.value)&&!!document.getElementById('siteName')?.value.trim()&&!!W_IMAGE&&!W_SAVING;
+  return `<section class="websites-page"><div class="row sp website-heading"><button class="website-back" data-site-back aria-label="Back to websites">‹</button><div><div class="website-kicker">WEBSITE TRACKER</div><h1>Add a site</h1></div><span></span></div><div class="website-form"><label class="website-label" for="siteUrl">Website URL <span>required</span></label><input id="siteUrl" type="url" inputmode="url" placeholder="https://example.com" autocomplete="url" value="${esc(document.getElementById('siteUrl')?.value||'')}"><div class="website-help">Use a full http:// or https:// link.</div><div class="website-label">Screenshot <span>required</span></div>${W_PREVIEW?`<img class="website-add-preview" src="${esc(W_PREVIEW)}" alt="Selected website screenshot">`:''}<div class="row website-image-actions"><button class="website-action" data-site-camera>Take screenshot</button><button class="website-action" data-site-gallery>Choose from gallery</button></div><div class="website-help">Compressed on this device before saving.</div><label class="website-label" for="siteName">Business name <span>required</span></label><input id="siteName" type="text" maxlength="120" placeholder="Business name" autocomplete="organization" value="${esc(document.getElementById('siteName')?.value||'')}"><div class="website-date">Date · ${esc(websiteDate(new Date().toISOString()))} <span>Added automatically</span></div><div class="row website-form-actions"><button class="website-save" data-site-save ${ready?'':'disabled'}>${W_SAVING?'Saving…':'Save site'}</button><button class="website-cancel" data-site-back>Cancel</button></div></div></section>`
+ }
+ if(W_SCREEN==='detail'){
+  const site=sites.find(x=>x.id===W_SELECTED)||(S.websites||[]).find(x=>x.id===W_SELECTED);
+  if(!site){W_SCREEN='list';W_SELECTED=null;return websitesView()}
+  const active=WEBSITE_STATES.indexOf(site.status);
+  return `<section class="websites-page"><div class="row sp website-heading"><button class="website-back" data-site-back aria-label="Back to websites">‹</button><div><div class="website-kicker">${esc(websiteDate(site.createdAt))}</div><h1>${esc(site.name)}</h1></div><span class="website-status">${esc(site.status)}</span></div><img class="website-detail-image" src="${esc(site.image)}" alt="Screenshot of ${esc(site.name)}"><a class="website-live-link" href="${esc(websiteUrl(site.url)?.href||'#')}" target="_blank" rel="noopener noreferrer">Open live site ↗</a><div class="website-status-row" role="group" aria-label="Website status">${WEBSITE_STATES.map((state,i)=>`<button class="website-status-button ${i===active?'current':''} ${i<active?'passed':''}" data-site-status="${i}" aria-pressed="${i===active}">${state}</button>`).join('')}</div><div class="website-sent-date">${site.sentAt?`Sent · ${esc(websiteDate(site.sentAt))}`:'Status starts at Built'}</div><label class="website-label" for="siteNote">Note <span>optional</span></label><textarea id="siteNote" class="website-note" maxlength="1000" placeholder="Add a note">${esc(site.note||'')}</textarea><button class="website-action website-note-save" data-site-note>Save note</button></section>`
+ }
+ const rows=(W_FILTER?websiteFollowups():sites);
+ return `<section class="websites-page"><div class="website-kicker">SYSTEM · OUTREACH LOG</div><h1 class="website-title">Websites</h1><div class="website-counts ${stats.sold?'with-sold':''}" aria-label="Website totals"><div><strong>${stats.built}</strong><span>BUILT</span></div><div><strong>${stats.sent}</strong><span>SENT</span></div><div><strong>${stats.replied}</strong><span>REPLIED</span></div>${stats.sold?`<div><strong>${stats.sold}</strong><span>SOLD</span></div>`:''}</div>${U?'':`<button class="website-sync-hint" data-v="s">Sign in from Status to sync Websites to your Google account</button>`}${waiting?`<button class="website-followup ${W_FILTER?'selected':''}" data-site-filter>${waiting} site${waiting===1?'':'s'} waiting on follow-up</button>`:''}${W_FILTER?`<div class="website-filter-label">FOLLOW-UP QUEUE <button data-site-filter>Show all</button></div>`:''}<div class="website-list">${rows.map(site=>`<button class="website-row" data-site="${esc(site.id)}"><img class="website-thumb" src="${esc(site.image)}" alt=""><span class="website-row-copy"><strong>${esc(site.name)}</strong><span>${esc(websiteUrl(site.url)?.hostname||site.url)}</span></span><span class="website-row-status">${esc(site.status)}</span><span class="website-row-arrow">›</span></button>`).join('')}${rows.length?'':`<div class="website-empty">${W_FILTER?'No sites are waiting on follow-up.':'No websites tracked yet.'}<br><span>Add the first one when it is built.</span></div>`}</div><button class="website-fab" data-site-add aria-label="Add a website">+</button></section>`
+}
+async function compressWebsiteImage(file){
+ if(!file||!String(file.type||'').startsWith('image/'))throw Error('Choose an image file');
+ if(file.size>20*1024*1024)throw Error('Image is over the 20 MB processing limit');
+ let source;
+ try{source=await createImageBitmap(file)}catch{throw Error('Could not read that screenshot')}
+ try{
+  let maxW=480,maxH=320,blob=null;
+  for(let scale=1;scale>=.55&&!blob;scale-=.15){
+   const ratio=Math.min(maxW*scale/source.width,maxH*scale/source.height,1),w=Math.max(1,Math.round(source.width*ratio)),h=Math.max(1,Math.round(source.height*ratio));
+   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(source,0,0,w,h);
+   for(const quality of[.62,.5,.4]){const candidate=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(candidate&&candidate.size<=16000){blob=candidate;break}}
+   if(!blob&&scale<=.55&&blob===null)throw Error('Screenshot will not fit the small-image limit; choose a simpler or smaller image');
+  }
+  if(!blob)throw Error('Could not compress the screenshot');
+  return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Could not prepare the screenshot'));reader.readAsDataURL(blob)})
+ }finally{source.close?.()}
+}
+async function saveWebsite(){
+ if(W_SAVING)return;
+ const inputUrl=document.getElementById('siteUrl'),inputName=document.getElementById('siteName'),parsed=websiteUrl(inputUrl?.value),name=(inputName?.value||'').trim();
+ if(!parsed||!name||!W_IMAGE){toast('Add a valid website link, screenshot, and business name');return}
+ W_SAVING=true;render();
+ try{
+  const image=await compressWebsiteImage(W_IMAGE);
+  const createdAt=new Date().toISOString(),site={id:'site-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),url:parsed.href,image,name,createdAt,updatedAt:createdAt,status:'Built',sentAt:null,note:''};
+  S.websites.push(site);
+  if(new Blob([JSON.stringify(S)]).size>850*1024){S.websites.pop();throw Error('The synced tracker is near its free account-size limit. Export a backup before adding more sites.')}
+  W_IMAGE=null;W_PREVIEW='';W_SAVING=false;W_SCREEN='list';W_FILTER=false;save();render();toast('BUILT +1 · SITE LOGGED')
+ }catch(e){W_SAVING=false;render();toast(e.message||'Could not save this site')}
+}
 const todaySaveLabel=()=>{if(navigator.onLine===false)return'OFFLINE · SAVED HERE';if(!U)return'SAVED ON DEVICE';if(/syncing/i.test(SM))return'SYNCING · SAVED HERE';if(/failed/i.test(SM))return'SYNC ISSUE · SAVED HERE';if(/synced|saved to your account|loaded from your account/i.test(SM))return'SYNCED';return'SAVED ON DEVICE'};
 const hd=d=>{const total=keys(d).length,cleared=cnt(d),progress=total?Math.round(cleared/total*100):0,isToday=d==today,date=dd(d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});return`<section class="pn today-head"><div class="row sp"><div><div class="today-kicker">${isToday?'TODAY':'DAY '+d}</div><h1>Daily quests</h1></div><span class="sub">${date}</span></div><div class="row sp today-count"><span>${total?cleared+' of '+total+' complete':'No quests scheduled'}</span><span>${isToday?todaySaveLabel():'VIEW ONLY · DAY '+d+'/'+DAYS}</span></div>${total?`<div class="today-progress" role="progressbar" aria-label="Daily quest progress" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${cleared}"><i style="width:${progress}%"></i></div>`:''}</section>`};
 function form(k){const d=today,i=(id,ph,val,ty)=>`<label class="activity-field"><span>${esc(ph)}</span><input id="${id}" aria-label="${esc(ph)}" ${ty?`type="text" maxlength="100"`:`type="number" inputmode="numeric" min="0"`} value="${esc(val)}"></label>`;let f='';
@@ -94,6 +148,7 @@ function render(){
   o+=`<div class="pn"><h2>Program setup</h2><div class="sub" style="margin-bottom:8px">Change the cycle start date. Day-numbered logs stay intact but their calendar dates move.</div><div class="row"><input id="programStart" type="date" value="${esc(S.startDate||CFG.startDate)}"><button class="b" id="saveStart">Save date</button></div><div class="sub" style="margin-top:8px">Weekly schedule, duration, learning topics, and boss cadence are in <code>program-config.js</code>.</div></div><div class="pn"><h2>Progress backup</h2><div class="sub" style="margin-bottom:8px">Export or restore progress anytime. TXT imports add recognized completed activities. PDF files stay on this device and are not included in backups.</div><div class="row"><button class="b" id="exportBackup">Export JSON</button><button class="b" style="${gh}" id="importBackup">Import JSON/TXT</button></div><div class="row" style="margin-top:8px"><button class="b" style="${gh}" id="restoreSafety" ${localStorage.getItem('sys90_before_import')||localStorage.getItem('sys90_autosave')?'':'disabled'}>Restore last safety copy</button></div></div><div class="pn"><h2>Account</h2>${U?`<div class="sub">${esc(U.email)}</div><div class="sub" style="margin:4px 0 8px">${SM||'Signed in'}</div><div class="row"><button class="b" id="sv">Save progress</button><button class="b" id="so" style="${gh}">Sign out</button></div>`:`<div class="sub" style="margin-bottom:8px">Sign in online to sync. Activity tracking works offline and saves on this device.</div><button class="b" id="si">Sign in with Google</button><div class="sub" style="margin-top:6px">${SM}</div>`}</div><div class="pn"><h2>Book link</h2><div class="row"><input id="lk" type="url" placeholder="https://" value="${esc(S.link||'')}"><button class="b" id="sl">Save</button></div></div>`;
   A.innerHTML=o}
  if(V=='b'){A.innerHTML=libView()}
+ if(V=='w'){A.innerHTML=websitesView()}
  if(V=='d'){let o=`<div class="pn"><h1>[SHADOW ARMY]</h1><div class="sub" style="margin-bottom:8px">${fd()} shadows raised</div><div class="army">`;
   for(let d=1;d<=DAYS;d++){const risen=d<=today&&!rest(d)&&full(d),level=risen?shadowLevel(d):1;
    o+=`<button class="army-unit${risen?'':' unrisen'}" data-n="${d}" ${d>today?'disabled':''} title="Day ${d}${risen?', shadow level '+level:rest(d)?', rest day':', not yet arisen'}" aria-label="Day ${d}${risen?', shadow level '+level:', no shadow'}">${shadow(risen,level)}${risen?`<span>Lv ${level}</span>`:''}</button>`}
@@ -127,7 +182,7 @@ function restoreSafetyCopy(){
   const backup=JSON.parse(raw);
   if(!backup||!validState(backup.data)){toast('No valid safety copy is available');return}
   if(!confirm('Restore the last local safety copy? Current progress will be replaced.'))return;
-  S=backup.data;fix();S.startDate=S.startDate||CFG.startDate||'2026-10-24';
+  const retainedWebsites=Array.isArray(S.websites)?S.websites:[];S=backup.data;if(!Array.isArray(S.websites))S.websites=retainedWebsites;fix();S.startDate=S.startDate||CFG.startDate||'2026-10-24';
   START=parseStart(S.startDate);today=currentDay();sel=today;save();render();toast('Safety copy restored')
  }catch(e){toast('Could not restore the safety copy')}
 }
@@ -205,7 +260,7 @@ async function importProgressFile(file){
   if(!validState(data))throw Error('The file does not contain a Daily Quest progress backup');
   if(!confirm(`Restore this backup from ${raw.exportedAt||'an imported file'}? Current app progress will be replaced, but a local safety copy will be kept first. PDF files are not included.`))return;
   if(!saveSafetyCopy()){toast('Could not save a safety copy; restore cancelled');return}
-  S=data;fix();S.startDate=S.startDate||CFG.startDate||'2026-10-24';
+  const retainedWebsites=Array.isArray(S.websites)?S.websites:[];S=data;if(!Array.isArray(S.websites))S.websites=retainedWebsites;fix();S.startDate=S.startDate||CFG.startDate||'2026-10-24';
   START=parseStart(S.startDate);today=currentDay();sel=today;save();render();toast('Backup restored; previous data is recoverable')
  }catch(e){toast('Import failed: '+(e.message||'invalid file'))}
 }
@@ -219,7 +274,16 @@ function complete(k){const d=today,g=i=>+(document.getElementById(i)||{}).value|
  open=null;save();render();beep();const x=xp(d,k),l1=lv(stats().t);
  toast(l1>l0?'[LEVEL UP] You reached level '+l1+'.':crit?'[CRITICAL HIT] +'+x+' XP, double.':full(d)&&k!='a'?'[QUEST COMPLETE] Arise.':'+'+x+' XP '+ST[k],k)}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
- if(D.v){V=D.v;open=null;ed=null;render();scrollTo(0,0);return}
+ if(D.v){V=D.v;open=null;ed=null;W_SCREEN='list';W_SELECTED=null;W_FILTER=false;render();scrollTo(0,0);return}
+ if(D.siteAdd!==undefined){W_SCREEN='add';W_SELECTED=null;W_IMAGE=null;W_PREVIEW='';render();return}
+ if(D.siteBack!==undefined){if(W_SCREEN==='detail'){W_SCREEN='list';W_SELECTED=null}else{W_SCREEN='list';W_IMAGE=null;W_PREVIEW=''}render();return}
+ if(D.siteFilter!==undefined){W_FILTER=!W_FILTER;W_SCREEN='list';render();return}
+ if(D.site){W_SELECTED=D.site;W_SCREEN='detail';W_FILTER=false;render();return}
+ if(D.siteCamera!==undefined){document.getElementById('siteCamera').click();return}
+ if(D.siteGallery!==undefined){document.getElementById('siteGallery').click();return}
+ if(D.siteSave!==undefined){saveWebsite();return}
+ if(D.siteStatus!==undefined){const site=(S.websites||[]).find(x=>x.id===W_SELECTED),index=+D.siteStatus;if(site&&index>=0&&index<WEBSITE_STATES.length){site.status=WEBSITE_STATES[index];if(index>=1&&!site.sentAt)site.sentAt=new Date().toISOString();site.updatedAt=new Date().toISOString();save();render()}return}
+ if(D.siteNote!==undefined){const site=(S.websites||[]).find(x=>x.id===W_SELECTED);if(site){site.note=document.getElementById('siteNote').value.trim();site.updatedAt=new Date().toISOString();save();render();toast('Note saved')}return}
  if(D.n){sel=+D.n;ed=null;V='q';render();scrollTo(0,0);return}
  if((D.o||D.c||D.p||D.u)&&sel!=today){toast('Past days are locked');return}
  if(D.o){open=D.o;if(D.o=='b'){complete('b');return}render();return}
@@ -282,7 +346,8 @@ function saveEdit(k){const d=ed.d,g=i=>+(document.getElementById(i)||{}).value||
  if(k=='r')v.p=g('f1');else if(k=='l')v.m=g('f1');else if(k=='w'||k=='a')v.n=g('f1');else if(k=='o'){v.f=g('f1');v.c=g('f2');v.$=g('f3');if(pDay(d))v.m=g('f4')}
  (S.v[d]=S.v[d]||{})[k]=v;if(k=='r'||k=='l'){S.n[d]=S.n[d]||{};S.n[d][k]=tx('f2')}
  ed=null;save();render();toast('Numbers corrected')}
-document.addEventListener('change',e=>{if(e.target.id=='pf'){addFile(e.target.files[0]);e.target.value=''}if(e.target.id=='backupfile'){importProgressFile(e.target.files[0]);e.target.value=''}});
+document.addEventListener('change',e=>{if(e.target.id=='pf'){addFile(e.target.files[0]);e.target.value=''}if(e.target.id=='backupfile'){importProgressFile(e.target.files[0]);e.target.value=''}if(e.target.id==='siteCamera'||e.target.id==='siteGallery'){const file=e.target.files[0];if(file){W_IMAGE=file;W_PREVIEW=URL.createObjectURL(file);render()}e.target.value=''}});
+document.addEventListener('input',e=>{if(e.target.id==='siteUrl'||e.target.id==='siteName'){const saveButton=document.querySelector('[data-site-save]');if(saveButton)saveButton.disabled=!(websiteUrl(document.getElementById('siteUrl')?.value)&&document.getElementById('siteName')?.value.trim()&&W_IMAGE&&!W_SAVING)}});
 const PQ_READY=fetch(CFG.persuasionDataFile||'persuasion-quests.json').then(r=>{if(!r.ok)throw Error('quests unavailable');return r.json()}).then(x=>{PQ=x;render()}).catch(()=>{});
 refreshHave().then(()=>{if(V=='b')render()});
 function fit(){const w=innerWidth;document.body.style.zoom=(screen.width<700&&w>screen.width*1.2)?Math.min(3,w/480):1}

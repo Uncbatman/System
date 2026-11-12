@@ -15,7 +15,7 @@ function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
   const events = {};
   const storage = new Map(saved ? [['sys90', JSON.stringify(saved)]] : []);
   const createElement = () => ({ style: {}, dataset: {}, append() {}, remove() {}, textContent: '', innerHTML: '' });
-  for (const id of ['app', 'pf', 'backupfile', 'programStart', 'f1', 'f2', 'f3', 'f4']) elements.set(id, { ...createElement(), value: '' });
+  for (const id of ['app', 'pf', 'backupfile', 'programStart', 'f1', 'f2', 'f3', 'f4', 'siteNote']) elements.set(id, { ...createElement(), value: '' });
   class FixedDate extends Date {
     constructor(...args) { super(...(args.length ? args : [date])); }
     static now() { return new Date(date).getTime(); }
@@ -24,6 +24,7 @@ function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
     Date: FixedDate,
     Math: Object.assign(Object.create(Math), { random: () => 1 }),
     console,
+    URL,
     document: {
       getElementById: id => elements.get(id) || null,
       querySelectorAll: () => [],
@@ -47,7 +48,7 @@ function createApp(date = '2026-11-05T10:00:00Z', saved = null) {
   vm.runInContext(art, context);
   // Keep all app functions; skip startup PDF inventory and network-facing initialization.
   vm.runInContext(app.slice(0, app.indexOf('refreshHave().then(')), context);
-  return { context, elements, storage, evaluate: source => vm.runInContext(source, context) };
+  return { context, elements, storage, evaluate: source => vm.runInContext(source, context), click: dataset => { const button = { dataset, id: '', closest: () => button }; for (const handler of events.click || []) handler({ target: { closest: () => button } }); } };
 }
 
 const boundaries = {
@@ -260,4 +261,87 @@ test('PWA caches split app/config/auth assets; app starts without remote font or
   new vm.Script(config);
   new vm.Script(art);
   assert.deepEqual(JSON.parse(fs.readFileSync(new URL('../public/manus-routes.json', import.meta.url), 'utf8')).routes, [{ path: '/', title: 'System: 90 Day Quest' }]);
+});
+
+test('Websites summary counts reached statuses, reveals Sold only after a sale, and lists newest first', () => {
+  const app = createApp('2026-11-05T10:00:00Z');
+  app.evaluate(`S.websites=[
+    {id:'older',name:'Older business',url:'https://older.example',image:'data:image/jpeg;base64,a',createdAt:'2026-11-01T10:00:00Z',status:'Built'},
+    {id:'newer',name:'Newer business',url:'https://newer.example',image:'data:image/jpeg;base64,b',createdAt:'2026-11-04T10:00:00Z',status:'Replied'}
+  ];V='w';render()`);
+  let output = app.elements.get('app').innerHTML;
+  assert.match(output, /BUILT/);
+  assert.match(output, /SENT/);
+  assert.match(output, /REPLIED/);
+  assert.doesNotMatch(output, /SOLD/);
+  assert.ok(output.indexOf('Newer business') < output.indexOf('Older business'));
+  assert.match(output, />2<\/strong>/);
+  app.evaluate("S.websites[1].status='Sold';render()");
+  output = app.elements.get('app').innerHTML;
+  assert.match(output, /SOLD/);
+  assert.equal(app.evaluate('websiteSummary().sold'), 1);
+});
+
+test('Websites follow-up queue uses the real count and only includes Sent sites at least three calendar days old', () => {
+  const app = createApp('2026-11-05T10:00:00Z');
+  app.evaluate(`S.websites=[
+    {id:'waiting',name:'Waiting business',url:'https://wait.example',image:'data:image/jpeg;base64,a',createdAt:'2026-11-01T10:00:00Z',status:'Sent',sentAt:'2026-11-02T10:00:00Z'},
+    {id:'recent',name:'Recent business',url:'https://recent.example',image:'data:image/jpeg;base64,b',createdAt:'2026-11-04T10:00:00Z',status:'Sent',sentAt:'2026-11-04T10:00:00Z'},
+    {id:'replied',name:'Replied business',url:'https://reply.example',image:'data:image/jpeg;base64,c',createdAt:'2026-11-03T10:00:00Z',status:'Replied',sentAt:'2026-11-01T10:00:00Z'}
+  ];V='w';render()`);
+  let output = app.elements.get('app').innerHTML;
+  assert.match(output, /1 site waiting on follow-up/);
+  app.evaluate("S.websites=[{id:'dst',status:'Sent',sentAt:'2026-03-06T08:00:00Z'}];assertion=websiteFollowups(Date.parse('2026-03-09T07:00:00Z')).length");
+  assert.equal(app.evaluate('assertion'), 1);
+  app.evaluate(`S.websites=[
+    {id:'waiting',name:'Waiting business',url:'https://wait.example',image:'data:image/jpeg;base64,a',createdAt:'2026-11-01T10:00:00Z',status:'Sent',sentAt:'2026-11-02T10:00:00Z'},
+    {id:'recent',name:'Recent business',url:'https://recent.example',image:'data:image/jpeg;base64,b',createdAt:'2026-11-04T10:00:00Z',status:'Sent',sentAt:'2026-11-04T10:00:00Z'},
+    {id:'replied',name:'Replied business',url:'https://reply.example',image:'data:image/jpeg;base64,c',createdAt:'2026-11-03T10:00:00Z',status:'Replied',sentAt:'2026-11-01T10:00:00Z'}
+  ];V='w';render()`);
+  app.click({ siteFilter: '' });
+  output = app.elements.get('app').innerHTML;
+  assert.match(output, /Waiting business/);
+  assert.doesNotMatch(output, /Recent business|Replied business/);
+});
+
+test('Website links require real HTTP(S) URLs and old progress backups keep existing website records', async () => {
+  const app = createApp('2026-11-05T10:00:00Z', {
+    startDate: '2026-10-24', link: '', d: { 13: { r: 1 } },
+    websites: [{ id: 'keep', name: 'Keep me', url: 'https://keep.example', image: 'data:image/jpeg;base64,a', createdAt: '2026-11-01T10:00:00Z', status: 'Built' }],
+  });
+  assert.equal(app.evaluate("websiteUrl('https://business.example')?.hostname"), 'business.example');
+  assert.equal(app.evaluate("websiteUrl('ftp://business.example')"), null);
+  assert.equal(app.evaluate("websiteUrl('not a link')"), null);
+  assert.equal(app.evaluate("websiteUrl('https://..')"), null);
+  assert.equal(app.evaluate("websiteUrl('https://user:pass@business.example')"), null);
+  app.evaluate("V='w';render()");
+  app.click({ siteAdd: '' });
+  assert.match(app.elements.get('app').innerHTML, /<h1>Add a site<\/h1>/);
+  assert.match(app.elements.get('app').innerHTML, /data-site-save disabled/);
+  assert.match(app.elements.get('app').innerHTML, /Take screenshot/);
+  assert.match(app.elements.get('app').innerHTML, /Choose from gallery/);
+  app.context.legacyFile = {
+    name: 'old-backup.json',
+    size: 120,
+    text: async () => JSON.stringify({ format: 'system-daily-quest-backup', version: 1, data: { startDate: '2026-10-24', d: { 13: { r: 1 } } } }),
+  };
+  await app.evaluate('importProgressFile(legacyFile)');
+  assert.equal(JSON.parse(app.storage.get('sys90')).websites[0].id, 'keep');
+  assert.equal(JSON.parse(app.storage.get('sys90')).d[13].r, 1);
+});
+
+test('Website detail exposes the live link and ordered statuses; entering Sent records its date and notes save separately', () => {
+  const app = createApp('2026-11-05T10:00:00Z', {
+    startDate: '2026-10-24', d: {}, websites: [{ id: 'site1', name: 'Example business', url: 'https://example.com', image: 'data:image/jpeg;base64,abc', createdAt: '2026-11-01T10:00:00Z', status: 'Built', sentAt: null, note: '' }],
+  });
+  app.evaluate("V='w';W_SCREEN='detail';W_SELECTED='site1';render()");
+  let output = app.elements.get('app').innerHTML;
+  assert.match(output, /https:\/\/example\.com/);
+  assert.match(output, /Built.*Sent.*Replied.*Sold/);
+  app.click({ siteStatus: '1' });
+  assert.equal(app.evaluate("S.websites[0].status"), 'Sent');
+  assert.equal(app.evaluate("S.websites[0].sentAt"), '2026-11-05T10:00:00.000Z');
+  app.elements.get('siteNote').value = 'Send proposal Friday';
+  app.click({ siteNote: '' });
+  assert.equal(app.evaluate("S.websites[0].note"), 'Send proposal Friday');
 });

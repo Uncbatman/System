@@ -9,15 +9,18 @@ A lightweight, installable productivity PWA for tracking reading, learning, stre
 - A Library for importing and reading PDFs on the current device, plus an optional book link.
 - Local progress tracking that works without signing in, versioned JSON export/restore, one-step local recovery, and preview-first `.txt` activity import.
 - Optional Google-account sync. The Firebase sign-in module is loaded only when the user chooses to sign in; signing in and cloud sync require connectivity.
+- A Websites tracker for built sites, outreach status, follow-up dates, and notes. Website screenshots are reduced and JPEG-compressed in the browser, then saved as part of the existing progress state and synced through the existing Google-account document when signed in. No paid storage or new Firebase service is used.
 - A PWA shell and app assets cached for later offline use, including the persuasion data and PDF reader.
 
 The default program starts **October 24, 2026**. The recurring business task is **“Business leads reach out.”** The Today view keeps completed activities visible, shows local/save status and required-task progress, and uses a compact completion card to reveal a blue shadow with the exact line **“A new shadow has arisen.”**
+
+The Websites tab is separate from quest scoring and level progression. It tracks URL, business name, compressed screenshot, creation date, status, Sent date, and optional note. Its records use the existing `sys90` local state and existing signed-in Google sync. Sign in through **Status → Account** for account sync; without sign-in, changes remain on the current device, consistent with the app's existing local-first behavior. Older JSON backups without the Websites field do not erase sites already on the device.
 
 ## Offline use
 
 Open the deployed app once while online so the service worker can install and cache its app shell and assets. Thereafter, activity tracking and locally stored progress work offline. Google sign-in and Firebase sync are optional online features; neither is required to record activities. If already signed in, changes made offline remain on the device and sync when connectivity returns.
 
-Progress is stored in browser `localStorage` under `sys90`; PDF files are stored in IndexedDB. Both are device- and origin-specific. Use **Status → Progress backup → Export JSON** for a portable progress backup. JSON backups do not contain PDF files. Importing JSON replaces progress after confirmation and stores a recovery copy first; importing a `.txt` file previews recognized day/activity lines, reports ignored lines, and merges the selected records. Unchecked or explicitly planned lines are ignored; unmarked recognized activity lines are treated as completed, and persuasion drills are imported only when the message target is present—review the preview before confirming.
+Progress and Websites records are stored in browser `localStorage` under `sys90`; PDF files are stored in IndexedDB. Both are device- and origin-specific until Google sync completes. Use **Status → Progress backup → Export JSON** for a portable progress backup. JSON backups do not contain PDF files. Importing JSON replaces progress after confirmation and stores a recovery copy first; importing an older JSON backup that has no Websites field keeps current site records. Importing a `.txt` file previews recognized day/activity lines, reports ignored lines, and merges the selected records. Unchecked or explicitly planned lines are ignored; unmarked recognized activity lines are treated as completed, and persuasion drills are imported only when the message target is present—review the preview before confirming.
 
 Each local save keeps the immediately previous progress state as a one-step recovery point. The browser's storage-persistence request is best-effort, not a substitute for an exported backup. Browser data can still be cleared by the user, browser settings, or device loss. A deployment on another hostname also has separate local storage; signing in can sync progress, but PDFs remain on the device where they were added.
 
@@ -45,7 +48,7 @@ Run the focused checks with Node.js:
 node --test tests/app.test.mjs
 ```
 
-The 13 checks cover the minimalist Today view, device-save status, visible completed activities, supplied persuasion data and five-message gate, configurable scheduling, actual text import and rolling recovery, backup parsing, quest completion, shadow progression, exact user-facing copy, offline cache assets, and preservation of the XP formula and original completion handler. Run the suite in UTC and a western time zone when changing date/import logic.
+The 17 checks cover the minimalist Today view, device-save status, visible completed activities, supplied persuasion data and five-message gate, configurable scheduling, actual text import and rolling recovery, backup parsing, quest completion, shadow progression, Websites status totals and follow-up filtering (including a daylight-saving boundary), older-backup preservation, exact user-facing copy, offline cache assets, and preservation of the XP formula and original completion handler. Run the suite in UTC and a western time zone when changing date/import logic.
 
 ## Sign-in and cloud-data security
 
@@ -54,7 +57,7 @@ The Firebase browser configuration is client-side configuration, not a secret. C
 ## Project layout
 
 - `public/index.html` — PWA entry page and styling.
-- `public/app.js` — quest, status, Library, persistence, backup/import, and rendering logic.
+- `public/app.js` — quest, status, Library, Websites tracker, persistence, backup/import, and rendering logic.
 - `public/program-config.js` — editable campaign defaults.
 - `public/firebase-auth.js` — optional Firebase/Google sign-in and Firestore sync, loaded on demand.
 - `public/persuasion-quests.json` — day-mapped drills and learning cards, used and cached offline.
