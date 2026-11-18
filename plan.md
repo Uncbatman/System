@@ -40,7 +40,7 @@ The visible app stays free: screenshot images are already compressed, the tracke
 - **Typography system:** reuse native `system-ui` (no network font), medium body copy with strong sunlight contrast, concise uppercase section labels, sentence-case actions, and tabular numerals for totals/time.
 - **Brand essence:** a personal discipline-and-business tracker where rank records real execution, not calendar time; deliberate, direct, earned.
 - **Brand voice:** respectful after sustained work and brief/cold without shaming after missed days. Example streak: “You kept the line. Streak: 4 days.” Example miss: “Missed: Outreach. Next: send one useful message.”
-- **Wordmark & logo:** preserve the existing System app icon/manifest and plain `SYSTEM` wordmark; no replacement logo, external font, or decorative hero asset.
+- **Wordmark & logo:** plain `SYSTEM` wordmark, no external font or decorative hero asset. The app icon was replaced on 2026-11-18 at the owner's request (see README, "Changing the app icon").
 - **Signature brand color:** System blue `#3FA9FF` for everyday navigation and verified completion/progress.
 
 ### Chosen configurable values and assumptions

@@ -401,7 +401,7 @@
       ] : [];
       const soldSites = (data().websites || []).filter(site => site.status === 'Sold');
       const activeGate = gateView();
-      const tasks = api.requiredKeys(today).map(key => ({ key, title: api.taskName(key), description: api.taskDescription(today, key), done: api.isDone(today, key) }));
+      const tasks = api.requiredKeys(today).map(key => ({ key, title: api.taskName(key), description: api.taskDescription(today, key), stat: { r: 'Intellect', l: 'Intellect', w: 'Strength', a: 'Strength', o: 'Influence' }[key] || '', done: api.isDone(today, key) }));
       const voiceMissed = !!api.wasYesterdayMissed();
       const daysStreak = api.streak();
       const voice = voiceMissed ? `Missed: ${api.yesterdayMissedNames()}. Next: do today’s work.` : daysStreak ? `You kept the line. Streak: ${daysStreak} days.` : 'No streak today. Begin with one real action.';
@@ -414,7 +414,7 @@
           return { key, name, points: Math.round(pts * 10) / 10, progress: remainder / band * 100, toNext: band - remainder };
         }),
         tasks, taskCount: tasks.length ? `${tasks.filter(task => task.done).length} / ${tasks.length} complete` : 'REST DAY',
-        trial, logActions: actions, formHtml: formType ? UI.evidenceForm(formType, soldSites, activeGate) : '',
+        trial, logActions: actions, formHtml: formType && formType !== 'gate' ? UI.evidenceForm(formType, soldSites, activeGate) : '',
         gate: activeGate, formType, momentumStep: s.momentumStep, momentumMax: config.momentum?.maxSteps || 7,
         report: weeklyReport(), lighterOffer, lighterStatus, voice, voiceMissed, voiceStreak: !voiceMissed && daysStreak > 0,
         siteCount: (data().websites || []).length, legacyHtml,

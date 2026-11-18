@@ -450,3 +450,43 @@ test('Website detail exposes the live link and ordered statuses; entering Sent r
   app.click({ siteNote: '' });
   assert.equal(app.evaluate("S.websites[0].note"), 'Send proposal Friday');
 });
+
+function openGate(app, stat) {
+  app.evaluate("V='s';render()");
+  app.evaluate(`SYS.ensure();S.system.gate={id:'g-test',stat:${JSON.stringify(stat)},title:'${stat} · one-hour Gate',description:'Test',targetText:'Test',minimum:1,createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),completedAt:null};SYS.setForm('gate')`);
+  return app.elements.get('app').innerHTML;
+}
+
+test('every Gate form field exists exactly once, so what you type is the value that is read', () => {
+  const ids = { wealth: ['system-gateQuoteOwner', 'system-gateQuoteAmount'], intellect: ['system-gatePages', 'system-gateIdea'], influence: ['system-gateMessages'], strength: ['system-gateReps'] };
+  for (const [stat, fields] of Object.entries(ids)) {
+    const output = openGate(createApp('2026-11-18T10:00:00Z'), stat);
+    for (const id of fields) assert.equal((output.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `${stat}: ${id}`);
+    assert.equal((output.match(/data-system-log-save="gate"/g) || []).length, 1, `${stat}: one save button`);
+  }
+});
+
+test('the Wealth Gate records a real quote and clears when the owner and price are entered', () => {
+  const app = createApp('2026-11-18T10:00:00Z');
+  openGate(app, 'wealth');
+  app.elements.set('system-gateQuoteOwner', { value: 'Mama Ken Curtains' });
+  app.elements.set('system-gateQuoteAmount', { value: '5000' });
+  assert.equal(app.evaluate("SYS.saveForm('gate')"), true);
+  assert.notEqual(app.evaluate("S.system.gate && S.system.gate.id"), 'g-test', 'the cleared Gate is closed');
+  assert.equal(Number(app.evaluate("SystemProgression.activeEvents(S.system).filter(e=>e.kind==='quoteSent'&&e.amount===5000).length")), 1);
+  assert.equal(app.evaluate("S.system.gateHistory.filter(g=>g.result==='cleared'&&g.stat==='wealth').length"), 1);
+});
+
+test('Intellect quests have distinct names, honest wording, and say which stat they build', () => {
+  const app = createApp('2026-11-18T10:00:00Z');
+  app.evaluate(`PQ=${JSON.stringify(persuasion)};V='s';render()`);
+  const output = app.elements.get('app').innerHTML;
+  assert.match(output, /<strong>Reading<\/strong>/);
+  assert.match(output, /<strong>Learning<\/strong>/);
+  assert.doesNotMatch(output, /<strong>Mind<\/strong>/);
+  assert.match(output, /builds Intellect/);
+  const learn = app.evaluate("txt(26,'l')");
+  assert.match(learn, /read the card, then try it today/);
+  assert.doesNotMatch(learn, /^Read .* for \d+ minutes$/);
+  assert.match(app.evaluate("txt(40,'l')"), /then pick one thing to try today/);
+});

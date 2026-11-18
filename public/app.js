@@ -1,5 +1,5 @@
 /* Program settings and local state */
-const CFG=window.DAILY_QUEST_CONFIG||{},DAYS=Math.max(1,+CFG.durationDays||90),KEY='sys90',ST={r:'Mind',l:'Intellect',w:'Strength',o:'Influence',a:'Bonus workout',b:'Gate'},TP=CFG.learningTopics||['Sales','Psychology','Wealth'];
+const CFG=window.DAILY_QUEST_CONFIG||{},DAYS=Math.max(1,+CFG.durationDays||90),KEY='sys90',ST={r:'Reading',l:'Learning',w:'Strength',o:'Influence',a:'Bonus workout',b:'Gate'},TP=CFG.learningTopics||['Sales','Psychology','Wealth'];
 const parseStart=value=>{const [y,m,d]=value.split('-').map(Number);return new Date(y,m-1,d)};
 let START;
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
@@ -17,7 +17,7 @@ const wi=d=>{let c=0;for(let i=1;i<d;i++)if(wd(i))c++;return c%2?'B':'A'};
 const BOSS=['Complete a 20 minute training session with no breaks','Finish a full chapter and write 3 lessons','Book a call with a new lead','Beat your best reps in every move','Teach someone what you learned','Beat your own record in every area'];
 let PQ=null;const pDay=d=>PQ&&PQ.days?PQ.days.find(x=>x.day==d):null,pCard=d=>{const p=pDay(d);return p&&p.card&&PQ&&PQ.cards?PQ.cards.find(x=>x.id==p.card):null};
 function txt(d,k){const rd=Math.min(3+Math.floor((d-1)/21),5);
- if(k=='r')return'Read '+pT(d)+' pages';if(k=='l'){const c=pCard(d);return c?'Read '+esc(c.title)+' for '+mT(d)+' minutes':'Learn '+TP[(d-1)%3]+' for '+mT(d)+' minutes'}
+ if(k=='r')return'Read '+pT(d)+' pages';if(k=='l'){const c=pCard(d);return c?'Learn: '+esc(c.title)+' · read the card, then try it today (about '+mT(d)+' min)':'Learn '+TP[(d-1)%3]+' (about '+mT(d)+' min) · then pick one thing to try today'}
  if(k=='w')return wi(d)=='A'?'Workout A, '+rd+' rounds: push-ups, pull-ups, squats, hollow hold':'Workout B, '+rd+' rounds: archer push-ups, hanging rows, split squats, leg raises';
  if(k=='o'){const p=pDay(d);return p?esc(p.influence)+' [BASELINE] Message '+(CFG.outreachMessagesPerDay||5)+' owners.':(CFG.businessTaskText||'Business leads reach out.')}if(k=='a')return'Any strength session you choose. Log your total reps.';const tasks=CFG.bossTasks||BOSS;return'GATE BOSS: '+tasks[(d/(CFG.bossEveryDays||15)-1)%tasks.length]}
 /* Existing progression and scoring rules */
@@ -110,7 +110,7 @@ const todaySaveLabel=()=>{if(navigator.onLine===false)return'OFFLINE · SAVED HE
 const hd=d=>{const total=keys(d).length,cleared=cnt(d),progress=total?Math.round(cleared/total*100):0,isToday=d==today,date=dd(d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});return`<section class="pn today-head"><div class="row sp"><div><div class="today-kicker">${isToday?'TODAY':'DAY '+d}</div><h1>Daily quests</h1></div><span class="sub">${date}</span></div><div class="row sp today-count"><span>${total?cleared+' of '+total+' complete':'No quests scheduled'}</span><span>${isToday?todaySaveLabel():'VIEW ONLY · DAY '+d+'/'+DAYS}</span></div>${total?`<div class="today-progress" role="progressbar" aria-label="Daily quest progress" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${cleared}"><i style="width:${progress}%"></i></div>`:''}</section>`};
 function form(k){const d=today,i=(id,ph,val,ty)=>`<label class="activity-field"><span>${esc(ph)}</span><input id="${id}" aria-label="${esc(ph)}" ${ty?`type="text" maxlength="100"`:`type="number" inputmode="numeric" min="0"`} value="${esc(val)}"></label>`;let f='';
  if(k=='r')f=(rdToday()?`<div class="sub">${rdToday()} pages counted from your Library today</div>`:'')+i('f1','Pages read',rdToday()||pT(d))+i('f2','Your one-line takeaway','',1)+(S.link?`<a class="lk" href="${esc(S.link)}" target="_blank" rel="noopener">Open your book</a>`:'');
- if(k=='l'){const c=pCard(d);f=(c?`<div class="sub"><strong>${esc(c.title)}</strong><br>${esc(c.idea)}<br><b>Try today:</b> ${esc(c.tryToday)}</div>`:'')+i('f1','Minutes spent',mT(d))+i('f2',c?'One-line takeaway after trying it':'Your one-line takeaway','',1)}
+ if(k=='l'){const c=pCard(d);f=(c?`<div class="sub"><strong>${esc(c.title)}</strong><br>${esc(c.idea)}<br><b>Try today:</b> ${esc(c.tryToday)}</div>`:'')+i('f1',c?'Minutes spent (learning + trying it)':'Minutes spent',mT(d))+i('f2',c?'One-line takeaway after trying it':'One-line takeaway + what you will try today','',1)}
  if(k=='w'||k=='a')f=i('f1','Total reps (or seconds of holds)','');
  if(k=='o'){const p=pDay(d);f=i('f1','New leads found','')+i('f2','Calls made','')+i('f3','Money made (KES)','')+(p?i('f4',`Owner messages sent (${CFG.outreachMessagesPerDay||5} required)`,''):'')}
  return`<div class="pn"><h2>${ST[k]}</h2><div class="sub" style="margin-bottom:8px">${txt(d,k)}</div><div style="display:grid;gap:8px">${f}</div><div class="row" style="margin-top:10px"><button class="b" data-c="${k}">Complete</button><button class="b" style="${gh}" data-x="1">Cancel</button></div></div>`}
@@ -154,7 +154,7 @@ function render(){
   keys(d).forEach(k=>{o+=done(d,k)?doneRow(d,k):open==k?form(k):qb(k)});
   if(open=='a')o+=form('a');else if(!done(d,'a')&&(!wd(d)||done(d,'w')))o+=`<button class="t" data-o="a" style="opacity:.75"><span class="bx"></span><span class="tt"><span class="tg">BONUS</span><br>Bonus workout (+XP, optional)</span></button>`;
   A.innerHTML=o}
- if(V=='s'){A.innerHTML=SystemDashboard.status(SYS.model(legacyStatusHtml()));return;}
+ if(V=='s'){const keep={},fid=document.activeElement&&document.activeElement.id;document.querySelectorAll('#app [data-system-field]').forEach(el=>{if(el.id)keep[el.id]=el.value});A.innerHTML=SystemDashboard.status(SYS.model(legacyStatusHtml()));for(const id in keep){const el=document.getElementById(id);if(el&&keep[id]!==''&&el.value!==keep[id])el.value=keep[id]}if(fid&&keep[fid]!==undefined){const el=document.getElementById(fid);if(el&&el.focus)el.focus()}return;}
  if(V=='wa'){A.innerHTML=SystemDashboard.army(S.websites,(on,level,kind)=>shadow(on,level,kind));return;}
  if(V=='b'){A.innerHTML=libView()}
  if(V=='w'){A.innerHTML=websitesView()}
@@ -330,7 +330,7 @@ const idbOp=async(m,k,v)=>{const db=await idb();return new Promise((res,rej)=>{c
 let have={},attachId=null,PDF=null,cur=1,zoom=1,bid=null,tmr=null,rt=null;
 async function refreshHave(){try{const db=await idb();await new Promise(r=>{const q=db.transaction('f').objectStore('f').getAllKeys();q.onsuccess=()=>{have={};q.result.forEach(k=>have[k]=1);r()};q.onerror=()=>r()})}catch(e){}}
 const rdToday=()=>Object.values(S.rd[today]||{}).reduce((a,x)=>a+x.length,0);
-const libView=()=>{const ids=Object.keys(S.lib);let o=`<div class="pn"><div class="row sp"><h1>[LIBRARY]</h1><button class="b" data-at="new">Add PDF</button></div><div class="sub" style="margin-top:6px">${rdToday()} pages read today. They fill in your Mind quest.</div></div>`;
+const libView=()=>{const ids=Object.keys(S.lib);let o=`<div class="pn"><div class="row sp"><h1>[LIBRARY]</h1><button class="b" data-at="new">Add PDF</button></div><div class="sub" style="margin-top:6px">${rdToday()} pages read today. They fill in your Reading quest.</div></div>`;
  if(!ids.length)o+=`<div class="pn"><div class="sub">No books yet. Tap Add PDF and choose a book from your phone. Books stay on this phone and work offline.</div></div>`;
  ids.forEach(id=>{const b=S.lib[id],pc=b.n?Math.round((b.m||0)/b.n*100):0;o+=`<div class="pn"><h2>${esc(b.t)}</h2><div class="sub">${b.n} pages. Furthest page ${b.m||0}.${have[id]?'':' Not on this phone yet.'}</div><div class="bar" style="margin:8px 0"><i style="width:${pc}%"></i></div><div class="row">${have[id]?`<button class="b" data-ob="${id}">${(b.m||0)>0?'Continue':'Start'}</button>`:`<button class="b" data-at="${id}">Add file</button>`}<button class="b" style="${gh}" data-rm="${id}">Remove</button></div></div>`});return o};
 async function ensurePdfjs(){if(window.pdfjsLib)return;await new Promise((res,rej)=>{const s=document.createElement('script');s.src='pdf.min.js';s.onload=res;s.onerror=rej;document.head.append(s)});pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js'}

@@ -49,7 +49,11 @@ Run the focused checks with Node.js:
 node --test tests/app.test.mjs
 ```
 
-The 22 checks cover the legacy XP/completion invariants, Website tracking, additive progress/backup preservation, Status layout and opening card, real-action scoring, rank-trial promotion/timestamps/Saturday rest, Saturday reporting, shadow color roles, and PWA/offline assets. Run `TZ=America/Los_Angeles node --test tests/app.test.mjs` as well when changing date handling.
+The 25 checks cover the legacy XP/completion invariants, Website tracking, additive progress/backup preservation, Status layout and opening card, real-action scoring, rank-trial promotion/timestamps/Saturday rest, Saturday reporting, shadow color roles, and PWA/offline assets. Run `TZ=America/Los_Angeles node --test tests/app.test.mjs` as well when changing date handling.
+
+## Changing the app icon
+
+The current app icon is the owner's sunset photo, exported as `public/icon-512.png`, `public/icon-192.png` and `public/icon-180.png`. For a later change, replace those square PNGs (keep important details near the centre so Android's round masks do not clip them), then change the cache name in `public/sw.js` (for example `sys-v7-icon` to `sys-v8-icon`). `index.html` and `manifest.json` point at these files; do not paste a base64 copy back into `index.html`. An already-installed copy keeps its old home-screen icon until it is removed and added again.
 
 ## Sign-in and cloud-data security
 
